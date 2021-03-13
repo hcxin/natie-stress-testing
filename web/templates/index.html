@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- import CSS -->
+    <link rel="stylesheet" href="/web/static/css/index.css">
+</head>
+<body>
+<el-container id="app">
+    <el-aside style="width:auto;">
+        <el-container>
+            <el-row>
+                <el-col :span="24" style="text-align: left;">
+                    <el-menu
+                            class="el-menu-vertical-demo"
+                            @open="handleOpen"
+                            @close="handleClose">
+                        <el-menu-item index="1">
+                            <i class="el-icon-lightning"></i>
+                            <span slot="title">测试</span>
+                        </el-menu-item>
+                        <el-menu-item index="2">
+                            <i class="el-icon-present"></i>
+                            <span slot="title">历史报告</span>
+                        </el-menu-item>
+                    </el-menu>
+                </el-col>
+            </el-row>
+        </el-container>
+
+
+    </el-aside>
+    <el-container>
+        <el-header>
+            <el-row :gutter="20">
+                <el-col :span="3">
+                    <div class="grid-content bg-purple">
+                        <template>
+                            <el-select v-model="httpMethod" placeholder="请选择">
+                                <el-option
+                                        v-for="item in options"
+                                        :key="item"
+                                        :label="item"
+                                        :value="item">
+                                </el-option>
+                            </el-select>
+                        </template>
+
+                    </div>
+                </el-col>
+                <el-col :span="12">
+                    <div class="grid-content bg-purple">
+                        <div>
+                            <el-input placeholder="请输入内容" v-model="url">
+                                <template slot="prepend">http://</template>
+                            </el-input>
+                        </div>
+                    </div>
+                </el-col>
+                <el-col :span="3">
+                    <div class="grid-content bg-purple">
+                        <el-button type="danger" @click="send()" round>发送<i class="el-icon-position el-icon--right"></i>
+                        </el-button>
+                    </div>
+                </el-col>
+                <el-col :span="4">
+                    <div class="grid-content bg-purple">
+                        <el-progress style="margin-top: 10px;" type="circle" :percentage="percentage"  status="success"
+                                     :stroke-width="6" :width="40" :height="40"></el-progress>
+                    </div>
+                </el-col>
+            </el-row>
+        </el-header>
+        <el-main>
+            <template>
+                <el-tabs :tab-position="tabPosition" v-model="activeName">
+                    <el-tab-pane label="设置" name="setting">
+                        <el-row :gutter="20">
+                            <el-col :span="6">
+                                <div>
+                                    <el-input placeholder="请求总数" v-model="total">
+                                        <template slot="prepend">请求总数:</template>
+                                    </el-input>
+                                </div>
+                            </el-col>
+                            <el-col :span="6">
+                                <div>
+                                    <el-input placeholder="并发数" v-model="concurrency">
+                                        <template slot="prepend">并发数:</template>
+                                    </el-input>
+                                </div>
+                            </el-col>
+                            <el-col :span="6">
+                                <div>
+                                    <el-input placeholder="超时时间" v-model="timeout">
+                                        <template slot="prepend">超时时间:</template>
+                                    </el-input>
+                                </div>
+                            </el-col>
+                        </el-row>
+                    </el-tab-pane>
+                    <el-tab-pane label="请求头" name="requestHeader">
+                        <el-row :gutter="20" style="text-align: left;">
+                            <el-col :span="6">
+                                <el-button type="success" plain size="mini"
+                                           style="margin-bottom: 10px;margin-left: 10px;" @click="addHeader">
+                                    添加
+                                </el-button>
+                            </el-col>
+                        </el-row>
+                        <el-row v-for="item,index in headers" :gutter="3">
+                            <el-col :span="6">
+                                <el-input v-model="item.headerName" placeholder="key"></el-input>
+                            </el-col>
+                            <el-col :span="10">
+                                <el-input v-model="item.headerValue" placeholder="value"></el-input>
+                            </el-col>
+                            <el-col :span="3">
+                                <el-button type="danger" size="mini" plain style="margin-top: 3px;"
+                                           @click="deleteHeader(index)">删除
+                                </el-button>
+                            </el-col>
+                        </el-row>
+                    </el-tab-pane>
+                    <el-tab-pane label="请求体" name="requestBody">
+                        <el-input
+                                type="textarea"
+                                :autosize="{ minRows: 4, maxRows: 10000}"
+                                placeholder="请求体"
+                                v-model="body">
+                        </el-input>
+                    </el-tab-pane>
+                    <el-tab-pane label="测试报告" name="testReport">
+                        <el-row  :gutter="3">
+                            <el-col :span="6" class="report-left color-blue">
+                                <div>Request url:</div>
+                            </el-col>
+                            <el-col :span="10" class="report-left color-coral">
+                                <div v-text="report.Url"></div>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="3">
+                            <el-col :span="6" class="report-left color-blue">
+                                <div>Method       :</div>
+                            </el-col>
+                            <el-col :span="10" class="report-left color-coral">
+                                <div v-text="report.Method"></div>
+                            </el-col>
+                        </el-row>
+                        <el-row  :gutter="3">
+                            <el-col :span="6" class="report-left color-blue">
+                                <div>Concurrency :</div>
+                            </el-col>
+                            <el-col :span="10" class="report-left color-coral">
+                                <div v-text="report.Concurrency"></div>
+                            </el-col>
+                        </el-row>
+
+                        <el-row  :gutter="3">
+                            <el-col :span="6" class="report-left color-blue">
+                                <div>Complete requests:</div>
+                            </el-col>
+                            <el-col :span="10" class="report-left color-coral">
+                                <div v-text="report.TotalNum"></div>
+                            </el-col>
+                        </el-row>
+                        <el-row  :gutter="3">
+                            <el-col :span="6" class="report-left color-blue">
+                                <div>Failed requests:</div>
+                            </el-col>
+                            <el-col :span="10" class="report-left color-coral">
+                                <div v-text="report.TotalFailed"></div>
+                            </el-col>
+                        </el-row>
+                        <el-row  :gutter="3">
+                            <el-col :span="6" class="report-left color-blue">
+                                <div>Time token for tests:</div>
+                            </el-col>
+                            <el-col :span="10" class="report-left color-coral">
+                                <div v-text="report.WorkCostTime + ' seconds'"></div>
+                            </el-col>
+                        </el-row>
+                        <el-row  :gutter="3">
+                            <el-col :span="6" class="report-left color-blue">
+                                <div>Requests per second:</div>
+                            </el-col>
+                            <el-col :span="10" class="report-left color-coral">
+                                <div v-text="report.ConcurrencyNum + '	[/sec]'"></div>
+                            </el-col>
+                        </el-row>
+                        <el-row  :gutter="3">
+                            <el-col :span="6" class="report-left color-blue">
+                                <div>Average time per request:</div>
+                            </el-col>
+                            <el-col :span="10" class="report-left color-coral">
+                                <div v-text="report.AverageRequestCostTime + '	seconds'"></div>
+                            </el-col>
+                        </el-row>
+                    </el-tab-pane>
+                </el-tabs>
+            </template>
+        </el-main>
+        <el-footer>
+            <el-row>
+            </el-row>
+        </el-footer>
+    </el-container>
+</el-container>
+<style>
+    .el-header {
+        background-color: #E9EEF3;
+        color: #333;
+        text-align: center;
+        line-height: 60px;
+    }
+
+    .el-footer {
+        background-color: #E9EEF3;
+        color: #333;
+        text-align: center;
+        line-height: 10px;
+        width: 100%;
+        height: 30px !important; /* footer的高度一定要是固定值*/
+        position: absolute;
+        bottom: 0px;
+        left: 0px;
+    }
+
+    .el-aside {
+        color: #333;
+        text-align: center;
+        line-height: 200px;
+    }
+
+    .el-main {
+        background-color: #f6f7f8;
+        color: #333;
+        text-align: center;
+        /*line-height: 160px;*/
+    }
+
+    body > .el-container {
+        margin-bottom: 40px;
+    }
+
+    .el-container:nth-child(5) .el-aside,
+    .el-container:nth-child(6) .el-aside {
+        line-height: 260px;
+    }
+
+    .el-container:nth-child(7) .el-aside {
+        line-height: 320px;
+    }
+
+    .report-left {
+        text-align: left;
+    }
+    .color-coral {
+        color: coral;
+    }
+    .color-blue {
+        color: #4eb9e2;
+    }
+</style>
+
+<!-- import Vue before Element -->
+<script charset="utf-8" src="/web/static/js/vue.min.js"></script>
+<script charset="utf-8" src="/web/static/js/element.js"></script>
+<script charset="utf-8" src="/web/static/js/axios.min.js"></script>
+<script charset="utf-8" src="/web/static/js/index.js"></script>
+</body>
+</html>
